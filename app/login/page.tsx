@@ -1,63 +1,122 @@
+"use client";
+
+import { SyntheticEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function Login() {
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      // Save JWT token
+      localStorage.setItem("token", data.token);
+
+      // Redirect to dashboard
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-md bg-[var(--background-soft)] border border-[var(--border-color)] rounded-2xl p-8 shadow-xl">
+      <div className="w-full max-w-md bg-(--background-soft) border border-(--border-color) rounded-2xl p-8 shadow-xl">
 
         {/* Heading */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-semibold">Welcome Back</h1>
-          <p className="text-[var(--muted)] mt-2 text-sm">
+          <p className="text-(--muted) mt-2 text-sm">
             Login to manage your tasks
           </p>
         </div>
 
         {/* Form */}
-        <form className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
           {/* Email */}
           <div>
-            <label className="text-sm text-[var(--muted)]">
+            <label className="text-sm text-(--muted)">
               Email
             </label>
             <input
               type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
-              className="w-full mt-2 px-4 py-3 rounded-lg bg-transparent border border-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition"
+              className="w-full mt-2 px-4 py-3 rounded-lg bg-transparent border border-(--border-color) focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
           </div>
 
           {/* Password */}
           <div>
-            <label className="text-sm text-[var(--muted)]">
+            <label className="text-sm text-(--muted)">
               Password
             </label>
             <input
               type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
-              className="w-full mt-2 px-4 py-3 rounded-lg bg-transparent border border-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition"
+              className="w-full mt-2 px-4 py-3 rounded-lg bg-transparent border border-(--border-color) focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
           </div>
+
+          {/* Error */}
+          {error && (
+            <p className="text-red-500 text-sm">{error}</p>
+          )}
 
           {/* Login Button */}
           <button
             type="submit"
-            className="mt-4 bg-[var(--color-primary)] py-3 rounded-lg text-white font-medium hover:opacity-90 transition"
+            disabled={loading}
+            className="mt-4 bg-primary py-3 rounded-lg text-white font-medium hover:opacity-90 transition disabled:opacity-60"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
         {/* Divider */}
-        <div className="my-6 border-t border-[var(--border-color)]" />
+        <div className="my-6 border-t border-(--border-color)" />
 
         {/* Register Link */}
-        <p className="text-center text-sm text-[var(--muted)]">
+        <p className="text-center text-sm text-(--muted)">
           Don't have an account?{" "}
           <Link
             href="/register"
-            className="text-[var(--color-primary)] hover:underline"
+            className="text-primary hover:underline"
           >
             Create one
           </Link>

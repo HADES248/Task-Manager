@@ -1,6 +1,55 @@
+"use client";
+
+import { SyntheticEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Register() {
+  const router = useRouter();
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    setError("");
+
+    if (password !== confirmPassword) {
+      return setError("Passwords do not match");
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message);
+      }
+
+      // Redirect to login after successful registration
+      router.push("/login");
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md bg-(--background-soft) border border-(--border-color) rounded-xl p-6 shadow-lg">
@@ -13,8 +62,15 @@ export default function Register() {
           </p>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <p className="text-red-500 text-xs mb-3 text-center">
+            {error}
+          </p>
+        )}
+
         {/* Form */}
-        <form className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
           <div>
             <label className="text-xs text-(--muted)">
@@ -23,6 +79,9 @@ export default function Register() {
             <input
               type="text"
               placeholder="Enter your full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
               className="w-full mt-1 px-3 py-2 rounded-lg bg-transparent border border-(--border-color) focus:outline-none focus:ring-2 focus:ring-primary transition text-sm"
             />
           </div>
@@ -34,6 +93,9 @@ export default function Register() {
             <input
               type="email"
               placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
               className="w-full mt-1 px-3 py-2 rounded-lg bg-transparent border border-(--border-color) focus:outline-none focus:ring-2 focus:ring-primary transition text-sm"
             />
           </div>
@@ -45,6 +107,9 @@ export default function Register() {
             <input
               type="password"
               placeholder="Create a password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
               className="w-full mt-1 px-3 py-2 rounded-lg bg-transparent border border-(--border-color) focus:outline-none focus:ring-2 focus:ring-primary transition text-sm"
             />
           </div>
@@ -56,15 +121,19 @@ export default function Register() {
             <input
               type="password"
               placeholder="Confirm your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
               className="w-full mt-1 px-3 py-2 rounded-lg bg-transparent border border-(--border-color) focus:outline-none focus:ring-2 focus:ring-primary transition text-sm"
             />
           </div>
 
           <button
             type="submit"
-            className="mt-2 bg-primary py-2.5 rounded-lg text-white font-medium hover:opacity-90 transition text-sm"
+            disabled={loading}
+            className="mt-2 bg-primary py-2.5 rounded-lg text-white font-medium hover:opacity-90 transition text-sm disabled:opacity-50"
           >
-            Create Account
+            {loading ? "Creating..." : "Create Account"}
           </button>
         </form>
 

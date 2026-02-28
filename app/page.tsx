@@ -13,13 +13,13 @@ export default function Home() {
         <div className="flex gap-4 justify-center items-center">
           <Link
             href="/login"
-            className="text-sm text-[var(--muted)] hover:text-white transition"
+            className="text-sm text-(--muted) hover:text-white transition"
           >
             Login
           </Link>
           <Link
             href="/register"
-            className="bg-[var(--color-primary)] px-4 py-2 rounded-lg text-sm text-white hover:opacity-90 transition"
+            className="bg-primary px-4 py-2 rounded-lg text-sm text-white hover:opacity-90 transition"
           >
             Get Started
           </Link>
@@ -31,12 +31,12 @@ export default function Home() {
         <h2 className="text-5xl font-bold leading-tight max-w-3xl">
           Organize Your Work.
           <br />
-          <span className="text-[var(--color-primary)]">
+          <span className="text-color-primary">
             Boost Your Productivity.
           </span>
         </h2>
 
-        <p className="mt-6 text-lg text-[var(--muted)] max-w-xl">
+        <p className="mt-6 text-lg text-(--muted) max-w-xl">
           A secure and powerful task management system built with
           modern technologies. Create, track, and complete your tasks
           efficiently from anywhere.
@@ -45,14 +45,14 @@ export default function Home() {
         <div className="mt-10 flex gap-6 flex-wrap justify-center">
           <Link
             href="/register"
-            className="bg-[var(--color-primary)] px-6 py-3 rounded-xl text-white font-medium hover:opacity-90 transition"
+            className="bg-primary px-6 py-3 rounded-xl text-white font-medium hover:opacity-90 transition"
           >
             Create Account
           </Link>
 
           <Link
             href="/login"
-            className="border border-[var(--border-color)] px-6 py-3 rounded-xl text-white hover:bg-[var(--background-soft)] transition"
+            className="border border-(--border-color) px-6 py-3 rounded-xl text-white hover:bg-(--background-soft) transition"
           >
             Login
           </Link>
@@ -60,7 +60,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="text-center py-6 text-sm text-[var(--muted)] border-t border-[var(--border-color)]">
+      <footer className="text-center py-6 text-sm text-(--muted) border-t border-(--border-color)">
         © {new Date().getFullYear()} TaskFlow. Built with Next.js & Node.js.
       </footer>
     </main>

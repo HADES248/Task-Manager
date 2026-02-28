@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, ChangeEvent, useMemo, JSX, SyntheticEvent } from "react";
+import { useState, useEffect, ChangeEvent, useMemo, JSX, SyntheticEvent } from "react";
+import { useRouter } from "next/navigation";
 
 interface Task {
   id: number;
@@ -11,45 +12,131 @@ interface Task {
 type FilterType = "all" | "active" | "completed";
 
 export default function Dashboard(): JSX.Element {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, title: "Build login page", completed: false },
-    { id: 2, title: "Setup backend API", completed: true },
-    { id: 3, title: "Design dashboard UI", completed: false },
-  ]);
+  const router = useRouter();
 
-  const [newTask, setNewTask] = useState<string>("");
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [newTask, setNewTask] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
-  const [search, setSearch] = useState<string>("");
-  const addTask = (e: SyntheticEvent<HTMLFormElement> ): void => {
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("token")
+      : null;
+
+  // 🚀 Fetch Tasks
+  useEffect(() => {
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    async function fetchTasks() {
+      try {
+        const res = await fetch("http://localhost:5000/api/tasks", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("Server error:", errorText);
+          return;
+        }
+
+        const data = await res.json();
+
+        // ✅ FIX HERE
+        setTasks(data.tasks || []);
+
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTasks();
+  }, []);
+
+  // ➕ Add Task
+  const addTask = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!newTask.trim()) return;
 
-    const task: Task = {
-      id: Date.now(),
-      title: newTask,
-      completed: false,
-    };
+    try {
+      const res = await fetch("http://localhost:5000/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title: newTask }),
+      });
 
-    setTasks((prev) => [...prev, task]);
-    setNewTask("");
+      const data = await res.json();
+      setTasks((prev) => [...prev, data]);
+      setNewTask("");
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const toggleTask = (id: number): void => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id
-          ? { ...task, completed: !task.completed }
-          : task
-      )
-    );
+  // ✅ Toggle Complete
+  const toggleTask = async (id: number) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/tasks/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            completed: !task.completed,
+          }),
+        }
+      );
+
+      const updated = await res.json();
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === id ? updated : t
+        )
+      );
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const deleteTask = (id: number): void => {
-    setTasks((prev) =>
-      prev.filter((task) => task.id !== id)
-    );
+  // ❌ Delete Task
+  const deleteTask = async (id: number) => {
+    try {
+      await fetch(
+        `http://localhost:5000/api/tasks/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setTasks((prev) =>
+        prev.filter((task) => task.id !== id)
+      );
+    } catch (err) {
+      console.error(err);
+    }
   };
 
+  // 🔍 Client-side Filter + Search
   const filteredTasks = useMemo(() => {
     return tasks
       .filter((task) => {
@@ -62,6 +149,19 @@ export default function Dashboard(): JSX.Element {
       );
   }, [tasks, filter, search]);
 
+  const logout = () => {
+    localStorage.removeItem("token");
+    router.push("/login");
+  };
+
+  if (loading) {
+    return (
+      <main className="h-dvh flex items-center justify-center">
+        <p>Loading tasks...</p>
+      </main>
+    );
+  }
+
   return (
     <main className="h-dvh bg-(--background) px-4 py-10">
       <div className="max-w-2xl mx-auto">
@@ -71,7 +171,10 @@ export default function Dashboard(): JSX.Element {
           <h1 className="text-2xl font-semibold">
             Your Tasks
           </h1>
-          <button className="text-sm text-primary hover:underline">
+          <button
+            onClick={logout}
+            className="text-sm text-primary hover:underline"
+          >
             Logout
           </button>
         </div>
@@ -85,20 +188,19 @@ export default function Dashboard(): JSX.Element {
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
               setNewTask(e.target.value)
             }
-            className="flex-1 px-3 py-2 rounded-lg bg-transparent border border-(--border-color) focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+            className="flex-1 px-3 py-2 rounded-lg bg-transparent border border-(--border-color)"
           />
           <button
             type="submit"
-            className="bg-primary px-4 rounded-lg text-white text-sm hover:opacity-90 transition"
+            className="bg-primary px-4 rounded-lg text-white text-sm"
           >
             Add
           </button>
         </form>
 
         {/* Search + Filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
 
-          {/* Search */}
           <input
             type="text"
             placeholder="Search tasks..."
@@ -106,20 +208,17 @@ export default function Dashboard(): JSX.Element {
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
               setSearch(e.target.value)
             }
-            className="px-3 py-2 rounded-lg bg-transparent border border-(--border-color) focus:outline-none focus:ring-2 focus:ring-primary text-sm w-full sm:w-1/2"
+            className="px-3 py-2 rounded-lg border border-(--border-color)"
           />
 
-          {/* Filters */}
           <div className="flex gap-2">
             {(["all", "active", "completed"] as FilterType[]).map((type) => (
               <button
                 key={type}
                 onClick={() => setFilter(type)}
-                className={`px-3 py-1 rounded-md text-xs capitalize border transition
-                  ${
-                    filter === type
-                      ? "bg-primary text-white border-primary"
-                      : "border-(--border-color) hover:bg-(--background-soft)"
+                className={`px-3 py-1 rounded-md text-xs capitalize border ${filter === type
+                  ? "bg-primary text-white border-primary"
+                  : "border-(--border-color)"
                   }`}
               >
                 {type}
@@ -131,14 +230,14 @@ export default function Dashboard(): JSX.Element {
         {/* Task List */}
         <div className="space-y-3">
           {filteredTasks.length === 0 ? (
-            <p className="text-(--muted) text-sm text-center mt-10">
+            <p className="text-sm text-center">
               No matching tasks found.
             </p>
           ) : (
             filteredTasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center justify-between p-4 rounded-lg border border-(--border-color) bg-(--background-soft)"
+                className="flex items-center justify-between p-4 rounded-lg border"
               >
                 <div
                   onClick={() => toggleTask(task.id)}
@@ -148,14 +247,12 @@ export default function Dashboard(): JSX.Element {
                     type="checkbox"
                     checked={task.completed}
                     readOnly
-                    className="accent-primary"
                   />
                   <span
-                    className={`text-sm ${
-                      task.completed
-                        ? "line-through text-(--muted)"
-                        : ""
-                    }`}
+                    className={`text-sm ${task.completed
+                      ? "line-through"
+                      : ""
+                      }`}
                   >
                     {task.title}
                   </span>
@@ -163,7 +260,7 @@ export default function Dashboard(): JSX.Element {
 
                 <button
                   onClick={() => deleteTask(task.id)}
-                  className="text-xs text-red-500 hover:underline"
+                  className="text-xs text-red-500"
                 >
                   Delete
                 </button>
