@@ -63,7 +63,13 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: "7d" } // long-lived
     );
 
-    // Optionally, save refresh token in DB for invalidation
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     await prisma.user.update({
       where: { id: user.id },
       data: { refreshToken },
@@ -89,24 +95,31 @@ export const login = async (req: Request, res: Response) => {
 
 export const refreshToken = async (req: Request, res: Response) => {
   try {
-    const token = req.cookies.refreshToken;
-    if (!token) return res.status(401).json({ message: "No refresh token" });
+    const token = req.cookies?.refreshToken;
+    if (!token) {
+      return res.status(401).json({ message: "No refresh token" });
+    }
 
-    const payload: any = jwt.verify(token, process.env.JWT_REFRESH_SECRET as string);
-
-    // Optionally, check if refresh token matches the one in DB
+    let payload: { userId: string };
+    try {
+      payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET as string) as { userId: string };
+    } catch (err) {
+      return res.status(403).json({ message: "Invalid or expired refresh token" });
+    }
     const user = await prisma.user.findUnique({ where: { id: payload.userId } });
-    if (!user || user.refreshToken !== token) return res.status(403).json({ message: "Invalid refresh token" });
+    if (!user || user.refreshToken !== token) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
 
     const newAccessToken = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET as string,
       { expiresIn: "15m" }
     );
-
     return res.status(200).json({ accessToken: newAccessToken });
   } catch (err) {
-    return res.status(403).json({ message: "Invalid or expired refresh token" });
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 

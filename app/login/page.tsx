@@ -30,12 +30,17 @@ export default function Login() {
           email,
           password,
         }),
+        credentials: "include",
       });
+
       const data = await res.json();
+
       if (!res.ok) {
         throw new Error(data.message || "Login failed");
       }
+
       setAccessToken(data.accessToken);
+
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
@@ -55,9 +60,7 @@ export default function Login() {
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label className="text-sm text-(--muted)">
-              Email
-            </label>
+            <label className="text-sm text-(--muted)">Email</label>
             <input
               type="email"
               required
@@ -68,9 +71,7 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="text-sm text-(--muted)">
-              Password
-            </label>
+            <label className="text-sm text-(--muted)">Password</label>
             <input
               type="password"
               required
@@ -80,10 +81,7 @@ export default function Login() {
               className="w-full mt-2 px-4 py-3 rounded-lg bg-transparent border border-(--border-color) focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
           </div>
-          {error && (
-            <p className="text-red-500 text-sm">{error}</p>
-          )}
-
+          {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
             disabled={loading}
@@ -96,10 +94,7 @@ export default function Login() {
         <div className="my-6 border-t border-(--border-color)" />
         <p className="text-center text-sm text-(--muted)">
           Don't have an account?{" "}
-          <Link
-            href="/register"
-            className="text-primary hover:underline"
-          >
+          <Link href="/register" className="text-primary hover:underline">
             Create one
           </Link>
         </p>
