@@ -3,9 +3,16 @@
 import { SyntheticEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../context/authContext";
+import showCustomAlert from "../Component/Toast";
 
 export default function Register() {
   const router = useRouter();
+  const { accessToken } = useAuth();
+
+  if (accessToken) {
+    router.push("/dashboard");
+  }
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,11 +47,11 @@ export default function Register() {
       if (!res.ok) {
         throw new Error(data.message);
       }
-
-      // Redirect to login after successful registration
+      showCustomAlert("Account created successfully! Please login.", "success");
       router.push("/login");
     } catch (err: any) {
       setError(err.message || "Something went wrong");
+      showCustomAlert("Something went wrong", "danger");
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import { SyntheticEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../context/authContext";
+import showCustomAlert from "../Component/Toast";
 
 export default function Login() {
   const router = useRouter();
@@ -38,12 +39,12 @@ export default function Login() {
       if (!res.ok) {
         throw new Error(data.message || "Login failed");
       }
-
       setAccessToken(data.accessToken);
-
       router.push("/dashboard");
+      showCustomAlert("Logged in successfully", "success");
     } catch (err: any) {
       setError(err.message);
+      showCustomAlert("Login failed", "danger");
     } finally {
       setLoading(false);
     }

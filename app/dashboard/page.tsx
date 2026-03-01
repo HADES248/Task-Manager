@@ -3,6 +3,7 @@
 import { useState, useEffect, ChangeEvent, useMemo, JSX, SyntheticEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/authContext";
+import showCustomAlert from "../Component/Toast";
 
 interface Task {
   id: number;
@@ -107,6 +108,7 @@ export default function Dashboard(): JSX.Element {
       const data = await res.json();
       setTasks((prev) => [...prev, data]);
       setNewTask("");
+      showCustomAlert("Task added successfully", "success");
     } catch (err) {
       console.error(err);
     }
@@ -192,6 +194,7 @@ export default function Dashboard(): JSX.Element {
       setTasks((prev) =>
         prev.filter((task) => task.id !== id)
       );
+      showCustomAlert("Task Deleted Successfully", "success");
     } catch (err) {
       console.error(err);
     }
@@ -219,6 +222,7 @@ export default function Dashboard(): JSX.Element {
     } catch (err) {
       console.error(err);
     } finally {
+      showCustomAlert("Logged out successfully", "success");
       setAccessToken(null);
       router.push("/login");
     }
