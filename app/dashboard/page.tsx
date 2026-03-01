@@ -2,6 +2,7 @@
 
 import { useState, useEffect, ChangeEvent, useMemo, JSX, SyntheticEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../context/authContext";
 
 interface Task {
   id: number;
@@ -13,6 +14,7 @@ type FilterType = "all" | "active" | "completed";
 
 export default function Dashboard(): JSX.Element {
   const router = useRouter();
+  const { accessToken, setAccessToken } = useAuth();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
@@ -20,14 +22,9 @@ export default function Dashboard(): JSX.Element {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("token")
-      : null;
-
-  // 🚀 Fetch Tasks
+  // Fetch Tasks
   useEffect(() => {
-    if (!token) {
+    if (!accessToken) {
       router.push("/login");
       return;
     }
@@ -36,21 +33,31 @@ export default function Dashboard(): JSX.Element {
       try {
         const res = await fetch("http://localhost:5000/api/tasks", {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
+          credentials: "include",
         });
 
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error("Server error:", errorText);
-          return;
+        if (res.status === 401) {
+          const refreshRes = await fetch("http://localhost:5000/api/auth/refresh", {
+            method: "POST",
+            credentials: "include",
+          });
+
+
+          if (!refreshRes.ok) {
+            setAccessToken(null);
+            router.push("/login");
+            return;
+          }
+
+          const refreshData = await refreshRes.json();
+          setAccessToken(refreshData.accessToken);
+
+          return fetchTasks();
         }
-
         const data = await res.json();
-
-        // ✅ FIX HERE
         setTasks(data.tasks || []);
-
       } catch (err) {
         console.error("Fetch error:", err);
       } finally {
@@ -58,9 +65,9 @@ export default function Dashboard(): JSX.Element {
       }
     }
     fetchTasks();
-  }, []);
+  }, [accessToken]);
 
-  // ➕ Add Task
+  // Add Task
   const addTask = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!newTask.trim()) return;
@@ -70,11 +77,31 @@ export default function Dashboard(): JSX.Element {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ title: newTask }),
+        credentials: "include",
       });
 
+      if (res.status === 401) {
+        // access token expired → refresh
+        const refreshRes = await fetch("http://localhost:5000/api/auth/refresh", {
+          method: "POST",
+          credentials: "include",
+        });
+
+        if (!refreshRes.ok) {
+          setAccessToken(null);
+          router.push("/login");
+          return;
+        }
+
+        const refreshData = await refreshRes.json();
+        setAccessToken(refreshData.accessToken);
+
+        // Retry adding task
+        return addTask(e);
+      }
       const data = await res.json();
       setTasks((prev) => [...prev, data]);
       setNewTask("");
@@ -83,7 +110,7 @@ export default function Dashboard(): JSX.Element {
     }
   };
 
-  // ✅ Toggle Complete
+  // Toggle Complete
   const toggleTask = async (id: number) => {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
@@ -95,16 +122,16 @@ export default function Dashboard(): JSX.Element {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
             completed: !task.completed,
           }),
+          credentials: "include",
         }
       );
-
+      if (!res.ok) throw new Error("Failed to update task");
       const updated = await res.json();
-
       setTasks((prev) =>
         prev.map((t) =>
           t.id === id ? updated : t
@@ -115,18 +142,21 @@ export default function Dashboard(): JSX.Element {
     }
   };
 
-  // ❌ Delete Task
+  // Delete Task
   const deleteTask = async (id: number) => {
     try {
-      await fetch(
+      const res = await fetch(
         `http://localhost:5000/api/tasks/${id}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
+          credentials: "include",
         }
       );
+
+      if (!res.ok) throw new Error("Failed to delete task");
 
       setTasks((prev) =>
         prev.filter((task) => task.id !== id)
@@ -136,7 +166,7 @@ export default function Dashboard(): JSX.Element {
     }
   };
 
-  // 🔍 Client-side Filter + Search
+  // Client-side Filter + Search
   const filteredTasks = useMemo(() => {
     return tasks
       .filter((task) => {
@@ -149,9 +179,18 @@ export default function Dashboard(): JSX.Element {
       );
   }, [tasks, filter, search]);
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
+  const logout = async () => {
+    try {
+      await fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAccessToken(null);
+      router.push("/login");
+    }
   };
 
   if (loading) {
@@ -165,8 +204,6 @@ export default function Dashboard(): JSX.Element {
   return (
     <main className="h-dvh bg-(--background) px-4 py-10">
       <div className="max-w-2xl mx-auto">
-
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold">
             Your Tasks
@@ -178,8 +215,6 @@ export default function Dashboard(): JSX.Element {
             Logout
           </button>
         </div>
-
-        {/* Add Task */}
         <form onSubmit={addTask} className="flex gap-3 mb-6">
           <input
             type="text"
@@ -197,10 +232,7 @@ export default function Dashboard(): JSX.Element {
             Add
           </button>
         </form>
-
-        {/* Search + Filters */}
         <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
-
           <input
             type="text"
             placeholder="Search tasks..."
@@ -210,7 +242,6 @@ export default function Dashboard(): JSX.Element {
             }
             className="px-3 py-2 rounded-lg border border-(--border-color)"
           />
-
           <div className="flex gap-2">
             {(["all", "active", "completed"] as FilterType[]).map((type) => (
               <button
@@ -226,8 +257,6 @@ export default function Dashboard(): JSX.Element {
             ))}
           </div>
         </div>
-
-        {/* Task List */}
         <div className="space-y-3">
           {filteredTasks.length === 0 ? (
             <p className="text-sm text-center">
