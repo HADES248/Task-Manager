@@ -10,12 +10,12 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
+// middleware
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-// Test routes
+// routes
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
@@ -30,8 +30,8 @@ app.get("/test", async (req, res) => {
   }
 });
 
-// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 
+// important for vercel
 export default app;
