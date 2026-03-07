@@ -34,7 +34,7 @@ export default function Dashboard(): JSX.Element {
 
     async function fetchTasks() {
       try {
-        const res = await fetch("http://localhost:5000/api/tasks", {
+        const res = await fetch("/api/tasks", {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
@@ -42,7 +42,7 @@ export default function Dashboard(): JSX.Element {
         });
 
         if (res.status === 401) {
-          const refreshRes = await fetch("http://localhost:5000/api/auth/refresh", {
+          const refreshRes = await fetch("/api/auth/refresh", {
             method: "POST",
             credentials: "include",
           });
@@ -76,7 +76,7 @@ export default function Dashboard(): JSX.Element {
     if (!newTask.trim()) return;
 
     try {
-      const res = await fetch("http://localhost:5000/api/tasks", {
+      const res = await fetch("/api/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -88,7 +88,7 @@ export default function Dashboard(): JSX.Element {
 
       if (res.status === 401) {
         // access token expired → refresh
-        const refreshRes = await fetch("http://localhost:5000/api/auth/refresh", {
+        const refreshRes = await fetch("/api/auth/refresh", {
           method: "POST",
           credentials: "include",
         });
@@ -118,7 +118,7 @@ export default function Dashboard(): JSX.Element {
     if (!editingTaskTitle.trim()) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/tasks/${id}`, {
+      const res = await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -150,7 +150,7 @@ export default function Dashboard(): JSX.Element {
 
     try {
       const res = await fetch(
-        `http://localhost:5000/api/tasks/${id}`,
+        `/api/tasks/${id}`,
         {
           method: "PUT",
           headers: {
@@ -179,7 +179,7 @@ export default function Dashboard(): JSX.Element {
   const deleteTask = async (id: number) => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/tasks/${id}`,
+        `/api/tasks/${id}`,
         {
           method: "DELETE",
           headers: {
@@ -215,7 +215,7 @@ export default function Dashboard(): JSX.Element {
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:5000/api/auth/logout", {
+      await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });

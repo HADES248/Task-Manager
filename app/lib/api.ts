@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"; // fallback for local dev
 
 export async function apiFetch(
   endpoint: string,
@@ -16,11 +16,18 @@ export async function apiFetch(
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
+    credentials: "include", // if you need cookies
   });
 
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.message || "Something went wrong");
+    let errorMessage = "Something went wrong";
+    try {
+      const error = await res.json();
+      errorMessage = error.message || errorMessage;
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
   }
 
   return res.json();

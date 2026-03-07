@@ -10,27 +10,33 @@ dotenv.config();
 
 const app = express();
 
+// Middleware
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
     credentials: true,
   })
 );
 app.use(express.json());
 app.use(cookieParser());
 
+// Test routes
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
 app.get("/test", async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.json(users);
+  try {
+    const users = await prisma.user.findMany();
+    res.json(users);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
 });
 
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
-});
+export default app;

@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const refresh = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/auth/refresh", {
+        const res = await fetch("/api/auth/refresh", {
           method: "POST",
           credentials: "include",
         });
