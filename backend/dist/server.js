@@ -13,7 +13,7 @@ const prisma_1 = require("./lib/prisma");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 // middleware
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({ origin: true, credentials: true }));
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 // routes
@@ -32,6 +32,5 @@ app.get("/test", async (req, res) => {
 });
 app.use("/api/auth", auth_routes_1.default);
 app.use("/api/tasks", task_routes_1.default);
-// important for vercel
 exports.default = app;
 //# sourceMappingURL=server.js.map
