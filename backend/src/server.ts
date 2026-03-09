@@ -33,5 +33,4 @@ app.get("/test", async (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 
-// ✅ Export handler for Vercel
-module.exports = app;
+export default app;
